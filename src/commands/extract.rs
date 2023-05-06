@@ -49,6 +49,7 @@ pub(crate) fn extract_daily_files(src: String, dst: String, dry_run: bool) -> Re
                     old_file_path.to_string_lossy(),
                     new_file_path.to_string_lossy()
                 );
+                std::fs::create_dir_all(&dst_dir)?;
                 std::fs::rename(old_file_path, new_file_path)?;
             }
         }
