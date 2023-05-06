@@ -19,7 +19,7 @@ pub(crate) fn pack_daily_files(src: String, dst: String, dry_run: bool) -> Resul
                 let date = NaiveDate::parse_from_str(&date_str, "%Y%m%d").unwrap();
 
                 // 日次ディレクトリにファイルを格納する
-                let new_dir_path = super::generate_new_dir_path(&dst_dir, &date, &cfg);
+                let new_dir_path = super::generate_new_dir_path_with_date(&dst_dir, &date, &cfg);
                 let new_file_path = super::generate_new_file_path(&new_dir_path, file_name);
 
                 if dry_run {
