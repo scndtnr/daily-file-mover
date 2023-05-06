@@ -1,8 +1,7 @@
-use clap::Parser;
+mod options;
 
 use self::options::{Commands, Opts};
-
-mod options;
+use clap::Parser;
 
 #[derive(Debug, Clone)]
 pub(super) struct Cui {
@@ -25,7 +24,8 @@ impl Cui {
             }
             Commands::Extract(args) => {
                 println!("{:#?}", args);
-                todo!("ファイル抽出機能を実装する")
+                crate::commands::extract_daily_files(args.src, args.dst, args.dry_run)
+                    .expect("Fail to extract daily files.");
             }
             Commands::Config => crate::commands::print_config(),
         }
