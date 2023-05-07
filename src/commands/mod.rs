@@ -14,7 +14,7 @@ use self::config::{load_config, Config};
 
 /// 文字列を `PathBuf` に変換する
 fn convert_to_path(path_str: &str) -> PathBuf {
-    PathBuf::from_str(path_str).expect("Fail to Convert src to root directory.")
+    PathBuf::from_str(path_str).expect("Fail to &str to PathBuf.")
 }
 
 /// 設定情報を元に、ディレクトリパスから日付情報を生成する
