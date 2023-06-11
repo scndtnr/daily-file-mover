@@ -1,0 +1,37 @@
+name: cui_test
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'feature/**'
+    paths:
+      - 'src/*'
+      - '.github/workflows/cui_test.yml'
+
+jobs:
+  tests:
+    name: ${{matrix.task.command}} Rust (on ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        task: [
+          {command: fmt, args: --all -- --check},
+          {command: clippy, args: --all-targets --all-features -- -D warnings},
+          {command: test, args: --all},
+        ]
+    env: 
+      RUST_BACKTRACE: full
+      TZ: 'Asia/Tokyo'
+    steps:
+      -
+        uses: actions/checkout@v3
+      -
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.os }}-${{ matrix.task.command }}
+      -
+        name: Exec cargo command
+        run: cargo ${{ matrix.task.command }} ${{ matrix.task.args }}
