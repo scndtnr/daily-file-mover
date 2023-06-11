@@ -1,8 +1,8 @@
 name: release-drafter
 on:
-  push:
-    branches:
-      - 'main'
+  # push:
+  #   branches:
+  #     - 'main'
   pull_request:
     types: [opened, reopened, synchronize]
 
@@ -164,7 +164,7 @@ jobs:
         id: create-draft
         uses: release-drafter/release-drafter@v5
         with:
-          # commitish: main
+          commitish: main
           version: v${{ needs.crate_metadata.outputs.version }}
           name: v${{ needs.crate_metadata.outputs.version }}
           tag: v${{ needs.crate_metadata.outputs.version }}
