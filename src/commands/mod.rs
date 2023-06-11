@@ -9,6 +9,7 @@ pub(super) use extract::extract_daily_files;
 pub(super) use pack::pack_daily_files;
 
 use chrono::NaiveDate;
+use regex::Regex;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
 
@@ -17,6 +18,15 @@ use self::config::{load_config, Config};
 /// 文字列を `PathBuf` に変換する
 fn convert_to_path(path_str: &str) -> PathBuf {
     PathBuf::from_str(path_str).expect("Fail to &str to PathBuf.")
+}
+
+fn date_from_str(date_str: &str) -> Option<NaiveDate> {
+    let date_regex = Regex::new(r"^(?P<y>\d{4})[/-]?(?P<m>\d{1,2})[/-]?(?P<d>\d{1,2})(_.*)?$")
+        .expect("Fail to create regex instance.");
+    let Some(caps) = date_regex.captures(date_str) else {return None};
+
+    let date_str = format!("{:04}{:02}{:02}", &caps["y"], &caps["m"], &caps["d"]);
+    NaiveDate::parse_from_str(&date_str, "%Y%m%d").ok()
 }
 
 /// 設定情報を元に、ディレクトリパスから日付情報を生成する
