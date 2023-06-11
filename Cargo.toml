@@ -11,7 +11,7 @@ strip = "symbols"
 [dependencies]
 anyhow = "1.0.71"
 chrono = "0.4.24"
-clap = {version = "3", features = ["derive"]}
+clap = {version = "4", features = ["derive"]}
 confy = "0.5.1"
 regex = "1.8.1"
 serde = "1.0.162"
