@@ -20,3 +20,6 @@ Cargo.lock
 
 # local hisotry
 .history
+
+# local sample file for test
+.sample

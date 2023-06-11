@@ -22,12 +22,35 @@ impl Opts {
 
 #[derive(Debug, Clone, Subcommand)]
 pub(super) enum Commands {
+    /// 新規の日報ファイルを作成する
+    CreateNewDailyReport(CreateNewDailyReportArgs),
     /// ファイルを日次ディレクトリ配下に格納する
     Pack(PackArgs),
     /// 日次ディレクトリ配下からファイルを取り出す
     Extract(ExtractArgs),
     /// 設定情報を出力する
     Config,
+}
+
+#[derive(Debug, Clone, Args)]
+pub(super) struct CreateNewDailyReportArgs {
+    /// 新規作成する日報ファイルの親ディレクトリを指定する。
+    /// 指定しない場合、設定ファイルを参照する。
+    #[arg(long)]
+    pub(super) path: Option<String>,
+
+    /// テンプレートファイルのパスを指定する。
+    /// 指定しない場合、設定ファイルを参照する。
+    #[arg(long)]
+    pub(super) template: Option<String>,
+
+    /// 作成対象日付を指定する。
+    /// 指定しない場合、実行時当日とする。
+    #[arg(long)]
+    pub(super) date: Option<String>,
+
+    #[clap(short, long, help = "仮実行フラグ")]
+    pub(super) dry_run: bool,
 }
 
 #[derive(Debug, Clone, Args)]
