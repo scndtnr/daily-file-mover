@@ -1,8 +1,10 @@
 mod config;
+mod create;
 mod extract;
 mod pack;
 
 pub(super) use config::print_config;
+pub(super) use create::create_new_daily_report;
 pub(super) use extract::extract_daily_files;
 pub(super) use pack::pack_daily_files;
 
