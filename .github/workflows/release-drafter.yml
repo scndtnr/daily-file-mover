@@ -1,0 +1,223 @@
+name: release-drafter
+on:
+  push:
+    branches:
+      - 'main'
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+env:
+  CICD_INTERMEDIATES_DIR: "_cicd-intermediates"
+
+jobs:
+  crate_metadata:
+    name: Extract crate metadata
+    runs-on: ubuntu-latest
+    steps:
+      -
+        uses: actions/checkout@v3
+      -
+        name: Extract crate information
+        id: crate_metadata
+        run: |
+          cargo metadata --no-deps --format-version 1 | jq -r '"name=" + .packages[0].name' | tee -a $GITHUB_OUTPUT
+          cargo metadata --no-deps --format-version 1 | jq -r '"version=" + .packages[0].version' | tee -a $GITHUB_OUTPUT
+    outputs:
+      name: ${{ steps.crate_metadata.outputs.name }}
+      version: ${{ steps.crate_metadata.outputs.version }}
+
+
+  build:
+    name: ${{ matrix.job.target }} (${{ matrix.job.os }})
+    runs-on: ${{ matrix.job.os }}
+    needs: [crate_metadata]
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: x86_64-pc-windows-msvc      , os: windows-latest                 }
+          - { target: x86_64-unknown-linux-musl   , os: ubuntu-latest, use-cross: true }
+    env:
+      BUILD_CMD: cargo
+    steps:
+      -
+        name: Fetch Sources
+        uses: actions/checkout@v3
+      -
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.job.os }}-${{ matrix.job.target }}
+      -
+        name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.job.target }}
+      -
+        name: Install cross
+        if: matrix.job.use-cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      -
+        name: Overwrite build command env variable
+        if: matrix.job.use-cross
+        shell: bash
+        run: echo "BUILD_CMD=cross" >> $GITHUB_ENV
+      -
+        name: Show version information (Rust, cargo, GCC)
+        shell: bash
+        run: |
+          gcc --version || true
+          rustup -V
+          rustup toolchain list
+          rustup default
+          cargo -V
+          rustc -V
+      -
+        name: Build
+        shell: bash
+        run: $BUILD_CMD build --release --target=${{ matrix.job.target }}
+      -
+        name: Set binary name & path
+        id: bin
+        shell: bash
+        run: |
+          # Figure out suffix of binary
+          EXE_suffix=""
+          case ${{ matrix.job.target }} in
+            *-pc-windows-*) EXE_suffix=".exe" ;;
+          esac;
+
+          # Setup paths
+          BIN_NAME="${{ needs.crate_metadata.outputs.name }}${EXE_suffix}"
+          BIN_PATH="target/${{ matrix.job.target }}/release/${BIN_NAME}"
+
+          # Let subsequent steps know where to find the binary
+          echo "BIN_PATH=${BIN_PATH}" >> $GITHUB_OUTPUT
+          echo "BIN_NAME=${BIN_NAME}" >> $GITHUB_OUTPUT
+      -
+        name: Create tarball
+        id: package
+        shell: bash
+        run: |
+          PKG_suffix=".tar.gz" ; case ${{ matrix.job.target }} in *-pc-windows-*) PKG_suffix=".zip" ;; esac;
+          PKG_BASENAME=${{ needs.crate_metadata.outputs.name }}-v${{ needs.crate_metadata.outputs.version }}-${{ matrix.job.target }}
+          PKG_NAME=${PKG_BASENAME}${PKG_suffix}
+          echo "PKG_NAME=${PKG_NAME}" >> $GITHUB_OUTPUT
+
+          PKG_STAGING="${{ env.CICD_INTERMEDIATES_DIR }}/package"
+          ARCHIVE_DIR="${PKG_STAGING}/${PKG_BASENAME}/"
+          mkdir -p "${ARCHIVE_DIR}"
+
+          # Binary
+          cp "${{ steps.bin.outputs.BIN_PATH }}" "$ARCHIVE_DIR"
+
+          # README, LICENSE and CHANGELOG files
+          cp "README.md" "$ARCHIVE_DIR"
+
+          # base compressed package
+          pushd "${PKG_STAGING}/" >/dev/null
+          case ${{ matrix.job.target }} in
+            *-pc-windows-*) 7z -y a "${PKG_NAME}" "${PKG_BASENAME}"/* | tail -n 2 ;;
+            *) tar czf "${PKG_NAME}" "${PKG_BASENAME}"/* ;;
+          esac;
+          popd >/dev/null
+
+          # Let subsequent steps know where to find the compressed package
+          echo "PKG_PATH=${PKG_STAGING}/${PKG_NAME}" >> $GITHUB_OUTPUT
+      -
+        name: "Artifact upload: tarball"
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.package.outputs.PKG_NAME }}
+          path: ${{ steps.package.outputs.PKG_PATH }}
+
+  prepare_release_draft:
+    name: Prepare Release Draft
+    needs: [crate_metadata, build]
+    permissions:
+      # write permission is required to create a github release
+      contents: write
+      # write permission is required for autolabeler
+      # otherwise, read permission is required at least
+      pull-requests: write
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create-draft.outputs.upload_url }}
+    steps:
+      -
+        name: Fetch Sources
+        uses: actions/checkout@v3
+      # Remove old release drafts by using the curl request for the available releases with draft flag
+      -
+        name: Remove Old Release Drafts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -H "Authorization: Bearer ${GITHUB_TOKEN}" https://api.github.com/repos/$GITHUB_REPOSITORY/releases \
+            | tr '\r\n' ' ' \
+            | jq '.[] | select(.draft == true) | .id' \
+            | xargs -I '{}' \
+          curl -X DELETE -H "Authorization: Bearer ${GITHUB_TOKEN}" https://api.github.com/repos/$GITHUB_REPOSITORY/releases/{}
+      -
+        name: Create/Update Release Draft #ここでリリースノートを作成
+        id: create-draft
+        uses: release-drafter/release-drafter@v5
+        with:
+          commitish: main
+          version: v${{ needs.crate_metadata.outputs.version }}
+          name: v${{ needs.crate_metadata.outputs.version }}
+          tag: v${{ needs.crate_metadata.outputs.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  attach_assets_to_release_draft:
+    name: Attach Assets to Release Draft
+    needs: [crate_metadata, build, prepare_release_draft]
+    permissions:
+      # write permission is required to create a github release
+      contents: write
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        job:
+          - { target: x86_64-pc-windows-msvc      , os: windows-latest                 }
+          - { target: x86_64-unknown-linux-musl   , os: ubuntu-latest, use-cross: true }
+    steps:
+      -
+        name: Set asset name & path & content-type
+        id: package
+        shell: bash
+        run: |
+          PKG_suffix=".tar.gz" ; case ${{ matrix.job.target }} in *-pc-windows-*) PKG_suffix=".zip" ;; esac;
+          PKG_BASENAME=${{ needs.crate_metadata.outputs.name }}-v${{ needs.crate_metadata.outputs.version }}-${{ matrix.job.target }}
+          PKG_NAME=${PKG_BASENAME}${PKG_suffix}
+
+          ASSETS_DIR="~/assets"
+          mkdir -p "${ASSETS_DIR}"
+
+          PKG_CONTENT_TYPE="application/x-gzip" ; case ${{ matrix.job.target }} in *-pc-windows-*) PKG_CONTENT_TYPE="application/zip" ;; esac;
+
+          echo "PKG_NAME=${PKG_NAME}" >> $GITHUB_OUTPUT
+          echo "ASSETS_DIR=${ASSETS_DIR}" >> $GITHUB_OUTPUT
+          echo "ASSETS_PATH=${ASSETS_DIR}/${PKG_NAME}" >> $GITHUB_OUTPUT
+          echo "PKG_CONTENT_TYPE=${PKG_CONTENT_TYPE}" >> $GITHUB_OUTPUT
+      -
+        name: Download Release Asset
+        uses: actions/download-artifact@v3
+        id: asset
+        with:
+          name: ${{ steps.package.outputs.PKG_NAME }}
+          path: ${{ steps.package.outputs.ASSETS_DIR }}
+      -
+        name: Upload Release Asset #ここで成果物をリリースノートにアップロード
+        id: upload-release-asset 
+        uses: shogo82148/actions-upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.prepare_release_draft.outputs.upload_url }} 
+          asset_path: ${{ steps.package.outputs.ASSETS_PATH }}
+          asset_name: ${{ steps.package.outputs.PKG_NAME }}
+          asset_content_type: ${{ steps.package.outputs.PKG_CONTENT_TYPE }}
