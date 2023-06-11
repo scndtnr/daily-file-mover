@@ -1,6 +1,5 @@
 use super::convert_to_path;
 use anyhow::Result;
-use regex::Regex;
 
 pub(crate) fn pack_daily_files(src: String, dst: String, dry_run: bool) -> Result<()> {
     let cfg = super::load_config();
