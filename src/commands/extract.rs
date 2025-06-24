@@ -12,16 +12,20 @@ use super::{
 
 pub(crate) fn extract_daily_files(src: String, dst: String, dry_run: bool) -> Result<()> {
     let cfg = load_config();
+    extract_daily_files_with_config(&cfg, src, dst, dry_run)
+}
+
+fn extract_daily_files_with_config(cfg: &Config, src: String, dst: String, dry_run: bool) -> Result<()> {
     let dst_dir = convert_to_path(&dst);
     let mut date_dir_entries: Vec<DirEntry> = WalkDir::new(src)
         .into_iter()
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.file_type().is_dir())
-        .filter(|entry| is_date_dir(entry, &cfg))
+        .filter(|entry| is_date_dir(entry, cfg))
         .collect();
     // 抽出した日次ディレクトリ配下に対して処理を行う
     for dir_entry in date_dir_entries.iter() {
-        let date = date_from_dir_path(&dir_entry.path().to_string_lossy(), &cfg);
+        let date = date_from_dir_path(&dir_entry.path().to_string_lossy(), cfg);
         for file_entry in WalkDir::new(dir_entry.path())
             .into_iter()
             .filter_map(|entry| entry.ok())
@@ -35,7 +39,7 @@ pub(crate) fn extract_daily_files(src: String, dst: String, dry_run: bool) -> Re
                     .to_str()
                     .expect("Fail to convert file_name to str"),
                 &date,
-                &cfg,
+                cfg,
             );
             if dry_run {
                 println!(
@@ -60,16 +64,11 @@ pub(crate) fn extract_daily_files(src: String, dst: String, dry_run: bool) -> Re
     for dir_entry in date_dir_entries.iter() {
         let dirpath = dir_entry.path();
         if is_empty_dir(dirpath) {
-            if dry_run {
-                println!(
-                    "[dry_run] delete empty direcotry: {}",
-                    dirpath.to_string_lossy()
-                );
-            } else {
-                println!(
-                    "[dry_run] delete empty direcotry: {}",
-                    dirpath.to_string_lossy()
-                );
+            let should_delete = !dry_run;
+            let message = format_delete_empty_dir_message(dry_run, &dirpath.to_string_lossy());
+            println!("{}", message);
+            
+            if should_delete {
                 std::fs::remove_dir(dirpath)?;
             }
         }
@@ -88,4 +87,39 @@ fn dir_item_count(path: &Path) -> usize {
 
 fn is_empty_dir(path: &Path) -> bool {
     std::fs::read_dir(path).unwrap().count() == 0
+}
+
+fn format_delete_empty_dir_message(dry_run: bool, path: &str) -> String {
+    if dry_run {
+        format!("[dry_run] delete empty direcotry: {}", path)
+    } else {
+        format!("delete empty direcotry: {}", path)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+
+    #[test]
+    fn test_format_delete_empty_dir_message_dry_run_false() {
+        // gag なしのテスト：分離されたメッセージフォーマット関数をテスト
+        let message = format_delete_empty_dir_message(false, "/test/path");
+        
+        // dry_run=falseの場合、[dry_run]プレフィックスは含まれてはいけない
+        assert!(!message.contains("[dry_run]"), 
+                "Bug: dry_run=false should not show [dry_run] prefix, but got: {}", message);
+        assert_eq!(message, "delete empty direcotry: /test/path");
+    }
+    
+    #[test]
+    fn test_format_delete_empty_dir_message_dry_run_true() {
+        // dry_run=true の場合の動作確認
+        let message = format_delete_empty_dir_message(true, "/test/path");
+        
+        assert!(message.contains("[dry_run]"), 
+                "dry_run=true should show [dry_run] prefix, but got: {}", message);
+        assert_eq!(message, "[dry_run] delete empty direcotry: /test/path");
+    }
 }
