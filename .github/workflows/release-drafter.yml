@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       -
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         name: Extract crate information
         id: crate_metadata
@@ -42,7 +42,7 @@ jobs:
     steps:
       -
         name: Fetch Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       -
         uses: Swatinem/rust-cache@v2
         with:
@@ -127,7 +127,7 @@ jobs:
           echo "PKG_PATH=${PKG_STAGING}/${PKG_NAME}" >> $GITHUB_OUTPUT
       -
         name: "Artifact upload: tarball"
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.package.outputs.PKG_NAME }}
           path: ${{ steps.package.outputs.PKG_PATH }}
@@ -147,7 +147,7 @@ jobs:
     steps:
       -
         name: Fetch Sources
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       # Remove old release drafts by using the curl request for the available releases with draft flag
       -
         name: Remove Old Release Drafts
@@ -205,7 +205,7 @@ jobs:
           echo "PKG_CONTENT_TYPE=${PKG_CONTENT_TYPE}" >> $GITHUB_OUTPUT
       -
         name: Download Release Asset
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         id: asset
         with:
           name: ${{ steps.package.outputs.PKG_NAME }}
