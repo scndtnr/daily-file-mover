@@ -23,7 +23,7 @@ fn convert_to_path(path_str: &str) -> PathBuf {
 fn date_from_str(date_str: &str) -> Option<NaiveDate> {
     let date_regex = Regex::new(r"^(?P<y>\d{4})[/-]?(?P<m>\d{1,2})[/-]?(?P<d>\d{1,2})(_.*)?$")
         .expect("Fail to create regex instance.");
-    let Some(caps) = date_regex.captures(date_str) else {return None};
+    let caps = date_regex.captures(date_str)?;
 
     let date_str = format!("{:04}{:02}{:02}", &caps["y"], &caps["m"], &caps["d"]);
     NaiveDate::parse_from_str(&date_str, "%Y%m%d").ok()
