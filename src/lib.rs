@@ -1,7 +1,9 @@
 mod commands;
 mod cui;
 
-pub fn init() {
+use anyhow::Result;
+
+pub fn init() -> Result<()> {
     let app = cui::Cui::new();
-    app.process();
+    app.process()
 }
