@@ -15,7 +15,12 @@ pub(crate) fn extract_daily_files(src: String, dst: String, dry_run: bool) -> Re
     extract_daily_files_with_config(&cfg, src, dst, dry_run)
 }
 
-fn extract_daily_files_with_config(cfg: &Config, src: String, dst: String, dry_run: bool) -> Result<()> {
+fn extract_daily_files_with_config(
+    cfg: &Config,
+    src: String,
+    dst: String,
+    dry_run: bool,
+) -> Result<()> {
     let dst_dir = convert_to_path(&dst);
     let mut date_dir_entries: Vec<DirEntry> = WalkDir::new(src)
         .into_iter()
@@ -67,7 +72,7 @@ fn extract_daily_files_with_config(cfg: &Config, src: String, dst: String, dry_r
             let should_delete = !dry_run;
             let message = format_delete_empty_dir_message(dry_run, &dirpath.to_string_lossy());
             println!("{}", message);
-            
+
             if should_delete {
                 std::fs::remove_dir(dirpath)?;
             }
@@ -101,25 +106,30 @@ fn format_delete_empty_dir_message(dry_run: bool, path: &str) -> String {
 mod tests {
     use super::*;
 
-
     #[test]
     fn test_format_delete_empty_dir_message_dry_run_false() {
         // gag なしのテスト：分離されたメッセージフォーマット関数をテスト
         let message = format_delete_empty_dir_message(false, "/test/path");
-        
+
         // dry_run=falseの場合、[dry_run]プレフィックスは含まれてはいけない
-        assert!(!message.contains("[dry_run]"), 
-                "Bug: dry_run=false should not show [dry_run] prefix, but got: {}", message);
+        assert!(
+            !message.contains("[dry_run]"),
+            "Bug: dry_run=false should not show [dry_run] prefix, but got: {}",
+            message
+        );
         assert_eq!(message, "delete empty direcotry: /test/path");
     }
-    
+
     #[test]
     fn test_format_delete_empty_dir_message_dry_run_true() {
         // dry_run=true の場合の動作確認
         let message = format_delete_empty_dir_message(true, "/test/path");
-        
-        assert!(message.contains("[dry_run]"), 
-                "dry_run=true should show [dry_run] prefix, but got: {}", message);
+
+        assert!(
+            message.contains("[dry_run]"),
+            "dry_run=true should show [dry_run] prefix, but got: {}",
+            message
+        );
         assert_eq!(message, "[dry_run] delete empty direcotry: /test/path");
     }
 }
