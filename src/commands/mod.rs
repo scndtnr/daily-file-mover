@@ -118,7 +118,8 @@ mod tests {
 
         // ファイルパス作成
         let new_path = generate_new_file_path_with_date(&new_dir_path, file_name, &date, &cfg);
-        let expect_path = convert_to_path("C:\\dev\\sandbox\\20230501_test.txt");
+        // プラットフォーム非依存の期待値作成
+        let expect_path = new_dir_path.join("20230501_test.txt");
         assert_eq!(new_path, expect_path);
     }
 
@@ -133,7 +134,8 @@ mod tests {
 
         // ファイルパス作成
         let new_path = generate_new_file_path_with_date(&new_dir_path, file_name, &date, &cfg);
-        let expect_path = convert_to_path("C:\\dev\\sandbox\\20230401_test.txt");
+        // プラットフォーム非依存の期待値作成
+        let expect_path = new_dir_path.join("20230401_test.txt");
         assert_eq!(new_path, expect_path);
     }
 }
