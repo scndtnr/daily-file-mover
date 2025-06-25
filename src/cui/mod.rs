@@ -10,13 +10,13 @@ pub(super) struct Cui {
 }
 
 impl Cui {
-    pub(super) async fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             opts: Opts::parse(),
         }
     }
 
-    pub(super) async fn process(&self) -> Result<()> {
+    pub(super) fn process(&self) -> Result<()> {
         match self.opts.command().clone() {
             Commands::CreateNewDailyReport(args) => {
                 println!("{:#?}", args);
@@ -63,13 +63,13 @@ mod tests {
         }
     }
 
-    #[tokio::test]
-    async fn test_process_method_returns_result_ok_for_config() {
+    #[test]
+    fn test_process_method_returns_result_ok_for_config() {
         // process()メソッドがResult<(), anyhow::Error>を返すことを確認
         let cui = create_test_cui_with_config();
 
         // Config コマンドの場合は成功するはず
-        let result: Result<(), anyhow::Error> = cui.process().await;
+        let result: Result<(), anyhow::Error> = cui.process();
 
         // Config コマンドは正常に実行されるはず
         assert!(result.is_ok());
