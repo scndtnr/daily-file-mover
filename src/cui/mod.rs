@@ -9,13 +9,13 @@ pub(super) struct Cui {
 }
 
 impl Cui {
-    pub(super) async fn new() -> Self {
+    pub(super) fn new() -> Self {
         Self {
             opts: Opts::parse(),
         }
     }
 
-    pub(super) async fn process(&self) {
+    pub(super) fn process(&self) {
         match self.opts.command().clone() {
             Commands::CreateNewDailyReport(args) => {
                 println!("{:#?}", args);

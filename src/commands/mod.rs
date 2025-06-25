@@ -23,7 +23,7 @@ fn convert_to_path(path_str: &str) -> PathBuf {
 fn date_from_str(date_str: &str) -> Option<NaiveDate> {
     let date_regex = Regex::new(r"^(?P<y>\d{4})[/-]?(?P<m>\d{1,2})[/-]?(?P<d>\d{1,2})(_.*)?$")
         .expect("Fail to create regex instance.");
-    let Some(caps) = date_regex.captures(date_str) else {return None};
+    let caps = date_regex.captures(date_str)?;
 
     let date_str = format!("{:04}{:02}{:02}", &caps["y"], &caps["m"], &caps["d"]);
     NaiveDate::parse_from_str(&date_str, "%Y%m%d").ok()
@@ -118,7 +118,7 @@ mod tests {
 
         // ファイルパス作成
         let new_path = generate_new_file_path_with_date(&new_dir_path, file_name, &date, &cfg);
-        let expect_path = convert_to_path("C:\\dev\\sandbox\\20230501_test.txt");
+        let expect_path = new_dir_path.join(file_name);
         assert_eq!(new_path, expect_path);
     }
 
@@ -133,7 +133,7 @@ mod tests {
 
         // ファイルパス作成
         let new_path = generate_new_file_path_with_date(&new_dir_path, file_name, &date, &cfg);
-        let expect_path = convert_to_path("C:\\dev\\sandbox\\20230401_test.txt");
+        let expect_path = new_dir_path.join("20230401_test.txt");
         assert_eq!(new_path, expect_path);
     }
 }
