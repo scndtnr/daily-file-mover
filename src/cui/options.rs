@@ -11,7 +11,7 @@ use clap::{Args, Parser, Subcommand};
 #[clap(propagate_version = true)]
 pub(crate) struct Opts {
     #[clap(subcommand)]
-    command: Commands,
+    pub(crate) command: Commands,
 }
 
 impl Opts {
@@ -21,7 +21,7 @@ impl Opts {
 }
 
 #[derive(Debug, Clone, Subcommand)]
-pub(super) enum Commands {
+pub(crate) enum Commands {
     /// 新規の日報ファイルを作成する
     CreateNewDailyReport(CreateNewDailyReportArgs),
     /// ファイルを日次ディレクトリ配下に格納する

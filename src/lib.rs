@@ -1,7 +1,9 @@
 mod commands;
 mod cui;
 
-pub async fn init() {
+use anyhow::Result;
+
+pub async fn init() -> Result<()> {
     let app = cui::Cui::new().await;
-    app.process().await;
+    app.process().await
 }

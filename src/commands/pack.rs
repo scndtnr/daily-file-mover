@@ -10,7 +10,9 @@ pub(crate) fn pack_daily_files(src: String, dst: String, dry_run: bool) -> Resul
         if entry.metadata()?.is_file() {
             if let Some(file_name) = entry.file_name().to_str() {
                 // 日次ディレクトリ作成のため、ファイルの接頭辞から日付データを作成する
-                let Some(date) = super::date_from_str(file_name) else {continue};
+                let Some(date) = super::date_from_str(file_name) else {
+                    continue;
+                };
 
                 // 日次ディレクトリにファイルを格納する
                 let new_dir_path = super::generate_new_dir_path_with_date(&dst_dir, &date, &cfg);
