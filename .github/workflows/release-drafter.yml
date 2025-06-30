@@ -162,7 +162,7 @@ jobs:
       -
         name: Create/Update Release Draft #ここでリリースノートを作成
         id: create-draft
-        uses: release-drafter/release-drafter@v5
+        uses: release-drafter/release-drafter@v6
         with:
           commitish: main
           version: v${{ needs.crate_metadata.outputs.version }}
